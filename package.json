@@ -1,0 +1,22 @@
+{
+  "name": "project-voting-platform",
+  "version": "1.0.0",
+  "description": "Internal platform for voting on favorite company projects (1-10), with an admin view and live results.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

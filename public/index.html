@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Project Vote</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand__dot"></div>
+      <div class="brand__name">Demo Day Vote</div>
+      <div class="brand__tag" id="brandTag"></div>
+    </div>
+
+    <!-- states get swapped in here -->
+    <div id="app"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/confetti.js"></script>
+  <script src="/js/voter.js"></script>
+</body>
+</html>
