@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const { openDb } = require('./db');
+const { openDb, seedProjects } = require('./db');
 
 const VALID_STATUSES = ['draft', 'live', 'closed'];
 
@@ -24,9 +24,18 @@ function safeEqual(a, b) {
  * @param {object} opts
  * @param {string} opts.dbPath        SQLite path (or ':memory:')
  * @param {string} opts.adminPassword Shared admin password
+ * @param {string} [opts.seedCsv]     CSV path to seed projects from when the table is empty
  */
 function createApp(opts = {}) {
   const db = openDb(opts.dbPath || ':memory:');
+  if (opts.seedCsv) {
+    try {
+      const n = seedProjects(db, opts.seedCsv);
+      if (n) console.log(`Seeded ${n} projects from ${opts.seedCsv}`);
+    } catch (err) {
+      console.error('Project seed failed:', err.message);
+    }
+  }
   const adminPassword = opts.adminPassword || 'admin';
   const adminToken = sha256('admin:' + adminPassword);
 
@@ -39,8 +48,8 @@ function createApp(opts = {}) {
     getStatus: db.prepare('SELECT status FROM event WHERE id = 1'),
     setStatus: db.prepare('UPDATE event SET status = ? WHERE id = 1'),
 
-    listProjects: db.prepare('SELECT id, name, description FROM projects ORDER BY id'),
-    getProject: db.prepare('SELECT id, name, description FROM projects WHERE id = ?'),
+    listProjects: db.prepare('SELECT id, name, description, team_members FROM projects ORDER BY id'),
+    getProject: db.prepare('SELECT id, name, description, team_members FROM projects WHERE id = ?'),
     insertProject: db.prepare('INSERT INTO projects (name, description) VALUES (?, ?)'),
     updateProject: db.prepare('UPDATE projects SET name = ?, description = ? WHERE id = ?'),
     deleteProject: db.prepare('DELETE FROM projects WHERE id = ?'),
@@ -58,7 +67,7 @@ function createApp(opts = {}) {
       DO UPDATE SET score = excluded.score, created_at = datetime('now')
     `),
     resultsByProject: db.prepare(`
-      SELECT p.id, p.name, p.description,
+      SELECT p.id, p.name, p.description, p.team_members,
              COUNT(v.id)                    AS vote_count,
              ROUND(AVG(v.score), 2)         AS average
         FROM projects p
@@ -137,6 +146,7 @@ function createApp(opts = {}) {
       id: p.id,
       name: p.name,
       description: p.description,
+      teamMembers: p.team_members,
       myScore: voted[p.id] ?? null,
     }));
     res.json({ voter: { name: voter.name }, projects });
@@ -189,6 +199,7 @@ function createApp(opts = {}) {
       id: p.id,
       name: p.name,
       description: p.description,
+      teamMembers: p.team_members,
       voteCount: p.vote_count,
       average: p.average, // null until first vote
     }));

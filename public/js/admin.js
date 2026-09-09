@@ -99,6 +99,7 @@
           <div class="a-project__head">
             <div>
               <div class="a-project__name">${esc(p.name)}</div>
+              ${p.team_members ? `<div class="a-project__desc" style="opacity:.7">${esc(p.team_members)}</div>` : ''}
               ${p.description ? `<div class="a-project__desc">${esc(p.description)}</div>` : ''}
             </div>
             ${editable ? `<div class="row" style="gap:8px">
@@ -252,6 +253,7 @@
           <div class="result__top">
             <div>
               <div class="a-project__name">${esc(p.name)}</div>
+              ${p.teamMembers ? `<div class="a-project__desc" style="opacity:.7">${esc(p.teamMembers)}</div>` : ''}
               ${p.description ? `<div class="a-project__desc">${esc(p.description)}</div>` : ''}
             </div>
             <div style="text-align:right">

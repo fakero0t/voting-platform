@@ -117,6 +117,7 @@
           <div>
             <div class="project__num">Project ${i + 1}</div>
             <h2 class="project__name" style="font-size:1.4rem">${esc(p.name)}</h2>
+            ${p.teamMembers ? `<p class="project__members" style="font-size:.85rem;opacity:.7;margin:.15rem 0 0">${esc(p.teamMembers)}</p>` : ''}
             ${p.description ? `<p class="project__desc">${esc(p.description)}</p>` : ''}
           </div>
           ${badge}
