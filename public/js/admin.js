@@ -247,12 +247,12 @@
 
   // ---------------- results tab ----------------
   async function renderResults() {
-    await paintResults();
+    await paintResults(true); // animate the first render only
     stopPolling();
     pollTimer = setInterval(() => { if (tab === 'results') paintResults(); }, 3000);
   }
 
-  async function paintResults() {
+  async function paintResults(animate = false) {
     let data;
     try { data = await api('/api/admin/results'); } catch { return; }
     const panel = document.getElementById('panel');
@@ -292,7 +292,7 @@
     }).join('') : `<div class="card center"><p class="muted">No projects to show yet.</p></div>`;
 
     panel.innerHTML = `
-      <div class="screen">
+      <div class="${animate ? 'screen' : ''}">
         <div class="card stack" style="margin-bottom:20px">
           <div class="row row--between" style="flex-wrap:wrap;gap:12px">
             <div>
