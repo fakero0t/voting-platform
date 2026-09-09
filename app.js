@@ -225,6 +225,36 @@ function createApp(opts = {}) {
     });
   });
 
+  // Download the full results as CSV: a summary section + one row per vote (who voted).
+  app.get('/api/admin/results.csv', requireAdmin, (req, res) => {
+    const cell = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const line = (arr) => arr.map(cell).join(',');
+
+    const results = q.resultsByProject.all();
+    const votes = q.detailedVotes.all();
+    const nameById = {};
+    for (const p of results) nameById[p.id] = p.name;
+
+    const rows = ['Results'];
+    rows.push(line(['Project', 'Team Members', 'Votes', 'Average']));
+    for (const p of results) {
+      rows.push(line([p.name, p.team_members, p.vote_count, p.average == null ? '' : p.average]));
+    }
+    rows.push('');
+    rows.push('Votes');
+    rows.push(line(['Project', 'Voter', 'Score', 'Voted At (UTC)']));
+    for (const v of votes) {
+      rows.push(line([nameById[v.project_id] || v.project_id, v.voter_name, v.score, v.created_at]));
+    }
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="voting-results.csv"');
+    res.send(rows.join('\n') + '\n');
+  });
+
   // Remove a single vote (e.g. a duplicate from someone voting on two devices).
   app.delete('/api/admin/votes/:id', requireAdmin, (req, res) => {
     const id = Number(req.params.id);

@@ -20,6 +20,25 @@
     setTimeout(() => (t.className = 'toast'), 2400);
   }
 
+  // Download the results CSV (raw fetch — the JSON api() helper can't handle a file body).
+  async function downloadResultsCsv() {
+    try {
+      const res = await fetch('/api/admin/results.csv');
+      if (res.status === 401) { renderLogin(); return; }
+      if (!res.ok) throw new Error('Could not generate the CSV.');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'voting-results.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Results downloaded.');
+    } catch (e) { toast(e.message, true); }
+  }
+
   // In-app confirmation dialog (replaces native confirm). Resolves true/false.
   function confirmModal({ title = 'Are you sure?', body = '', confirmLabel = 'Confirm', danger = false } = {}) {
     return new Promise((resolve) => {
@@ -332,12 +351,17 @@
               <div class="eyebrow">Live results</div>
               <h2 style="font-size:1.4rem;margin-top:4px">${data.voters.length} voter${data.voters.length === 1 ? '' : 's'} · ${totalVotes} vote${totalVotes === 1 ? '' : 's'}</h2>
             </div>
-            ${statusChip}
+            <div class="row" style="gap:10px;align-items:center">
+              ${statusChip}
+              <button class="btn btn--ghost btn--sm" id="downloadCsv">Download CSV</button>
+            </div>
           </div>
           <p class="muted" style="margin:0;font-size:.9rem">Updates automatically as votes come in.</p>
         </div>
         ${cards}
       </div>`;
+
+    panel.querySelector('#downloadCsv')?.addEventListener('click', downloadResultsCsv);
 
     panel.querySelectorAll('[data-toggle]').forEach((b) =>
       b.addEventListener('click', () => {

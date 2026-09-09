@@ -191,6 +191,34 @@ test('removing a vote requires admin, and a missing vote 404s', async () => {
   await admin.delete('/api/admin/votes/99999').expect(404);
 });
 
+test('results CSV export includes the summary and who voted', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  const pid = await addProject(admin, 'Alpha', 'first');
+  await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
+
+  const voter = await (async () => {
+    const v = request.agent(app);
+    await v.post('/api/voter/register').send({ firstName: 'Sam', lastName: 'Lee' }).expect(200);
+    return v;
+  })();
+  await voter.post('/api/votes').send({ projectId: pid, score: 7 }).expect(200);
+
+  // requires admin
+  await request(app).get('/api/admin/results.csv').expect(401);
+
+  const res = await admin.get('/api/admin/results.csv').expect(200);
+  assert.match(res.headers['content-type'], /text\/csv/);
+  assert.match(res.headers['content-disposition'], /attachment; filename="voting-results\.csv"/);
+  const csv = res.text;
+  assert.match(csv, /Results/);
+  assert.match(csv, /Project,Team Members,Votes,Average/);
+  assert.match(csv, /Votes/);
+  assert.match(csv, /Project,Voter,Score,Voted At \(UTC\)/);
+  assert.match(csv, /Alpha,,1,7/);        // summary row: 1 vote, avg 7
+  assert.match(csv, /Alpha,Sam Lee,7,/);  // who voted
+});
+
 const SAMPLE_CSV =
   'Timestamp,Email Address,Team Name,Team Members,Elevator Pitch\n' +
   '9/8/2026 14:41:00,a@x.com,Alpha Team,"Ann A, Bo B","A pitch, with a comma"\n' +
