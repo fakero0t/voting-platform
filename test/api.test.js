@@ -146,7 +146,7 @@ test('results are the average of all votes and list who voted', async () => {
 
   for (const [name, score] of [['Sam', 8], ['Kim', 6], ['Lee', 10]]) {
     const v = request.agent(app);
-    await v.post('/api/voter/register').send({ firstName: name, lastName: 'Q' }).expect(200);
+    await v.post('/api/voter/register').send({ firstName: name, lastName: 'Qi' }).expect(200);
     await v.post('/api/votes').send({ projectId: pid, score }).expect(200);
   }
 
@@ -156,7 +156,7 @@ test('results are the average of all votes and list who voted', async () => {
   assert.strictEqual(project.average, 8); // (8+6+10)/3
   assert.strictEqual(res.body.votesByProject[pid].length, 3);
   const names = res.body.votesByProject[pid].map((x) => x.voterName).sort();
-  assert.deepStrictEqual(names, ['Kim Q', 'Lee Q', 'Sam Q']);
+  assert.deepStrictEqual(names, ['Kim Qi', 'Lee Qi', 'Sam Qi']);
 });
 
 test('admin can remove a specific vote (duplicate cleanup)', async () => {
@@ -167,12 +167,12 @@ test('admin can remove a specific vote (duplicate cleanup)', async () => {
 
   for (const [name, score] of [['Sam', 8], ['Kim', 6]]) {
     const v = request.agent(app);
-    await v.post('/api/voter/register').send({ firstName: name, lastName: 'Q' }).expect(200);
+    await v.post('/api/voter/register').send({ firstName: name, lastName: 'Qi' }).expect(200);
     await v.post('/api/votes').send({ projectId: pid, score }).expect(200);
   }
 
   let res = await admin.get('/api/admin/results').expect(200);
-  const kim = res.body.votesByProject[pid].find((x) => x.voterName === 'Kim Q');
+  const kim = res.body.votesByProject[pid].find((x) => x.voterName === 'Kim Qi');
   assert.ok(kim.voteId, 'each vote exposes a voteId');
 
   await admin.delete('/api/admin/votes/' + kim.voteId).expect(200);
@@ -181,7 +181,7 @@ test('admin can remove a specific vote (duplicate cleanup)', async () => {
   const project = res.body.projects.find((p) => p.id === pid);
   assert.strictEqual(project.voteCount, 1);              // Kim's vote gone
   assert.strictEqual(project.average, 8);               // only Sam's 8 remains
-  assert.deepStrictEqual(res.body.votesByProject[pid].map((x) => x.voterName), ['Sam Q']);
+  assert.deepStrictEqual(res.body.votesByProject[pid].map((x) => x.voterName), ['Sam Qi']);
 });
 
 test('removing a vote requires admin, and a missing vote 404s', async () => {
