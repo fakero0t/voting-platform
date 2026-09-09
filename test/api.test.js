@@ -128,6 +128,16 @@ test('registration requires both first and last name', async () => {
   await request(app).post('/api/voter/register').send({ lastName: 'Lee' }).expect(400);
 });
 
+test('registration rejects names shorter than 2 characters', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  await addProject(admin, 'Alpha');
+  await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
+  await request(app).post('/api/voter/register').send({ firstName: 'S', lastName: 'Lee' }).expect(400);
+  await request(app).post('/api/voter/register').send({ firstName: 'Sam', lastName: 'L' }).expect(400);
+  await request(app).post('/api/voter/register').send({ firstName: 'Sa', lastName: 'Le' }).expect(200);
+});
+
 test('results are the average of all votes and list who voted', async () => {
   const app = makeApp();
   const admin = await adminAgent(app);

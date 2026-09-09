@@ -127,6 +127,9 @@ function createApp(opts = {}) {
     if (!firstName || !lastName) {
       return res.status(400).json({ error: 'Please enter your first and last name.' });
     }
+    if (firstName.length < 2 || lastName.length < 2) {
+      return res.status(400).json({ error: 'First and last name must be at least 2 characters each.' });
+    }
     const name = `${firstName} ${lastName}`;
     if (name.length > 80) return res.status(400).json({ error: 'That name is too long.' });
 

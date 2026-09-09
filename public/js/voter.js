@@ -77,6 +77,11 @@
         (firstName ? lastEl : firstEl).focus();
         return;
       }
+      if (firstName.length < 2 || lastName.length < 2) {
+        toast('First and last name must be at least 2 characters.', true);
+        (firstName.length < 2 ? firstEl : lastEl).focus();
+        return;
+      }
       go.disabled = true;
       try {
         await api('/api/voter/register', { method: 'POST', body: JSON.stringify({ firstName, lastName }) });
