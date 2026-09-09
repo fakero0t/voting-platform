@@ -140,6 +140,48 @@ test('results are the average of all votes and list who voted', async () => {
   assert.deepStrictEqual(names, ['Kim', 'Lee', 'Sam']);
 });
 
+const SAMPLE_CSV =
+  'Timestamp,Email Address,Team Name,Team Members,Elevator Pitch\n' +
+  '9/8/2026 14:41:00,a@x.com,Alpha Team,"Ann A, Bo B","A pitch, with a comma"\n' +
+  '9/8/2026 14:51:00,b@x.com,Beta Team,"Cy C","Multi\nline pitch"\n';
+
+test('CSV upload replaces all projects (team name, members, pitch)', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  await addProject(admin, 'Old Project', 'to be replaced');
+
+  const res = await admin.post('/api/admin/projects/upload').send({ csv: SAMPLE_CSV }).expect(200);
+  assert.strictEqual(res.body.count, 2);
+
+  const { body } = await admin.get('/api/admin/projects').expect(200);
+  assert.deepStrictEqual(body.projects.map((p) => p.name), ['Alpha Team', 'Beta Team']);
+  assert.strictEqual(body.projects[0].team_members, 'Ann A, Bo B');
+  assert.strictEqual(body.projects[0].description, 'A pitch, with a comma');
+  assert.strictEqual(body.projects[1].description, 'Multi\nline pitch');
+});
+
+test('CSV upload is blocked unless the vote is a draft', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  await addProject(admin, 'Alpha');
+  await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
+  await admin.post('/api/admin/projects/upload').send({ csv: SAMPLE_CSV }).expect(409);
+});
+
+test('a CSV with no team rows is rejected and leaves projects intact', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  await addProject(admin, 'Keep Me');
+  await admin.post('/api/admin/projects/upload').send({ csv: 'Timestamp,Email,Team Name\n' }).expect(400);
+  const { body } = await admin.get('/api/admin/projects').expect(200);
+  assert.deepStrictEqual(body.projects.map((p) => p.name), ['Keep Me']);
+});
+
+test('CSV upload requires admin auth', async () => {
+  const app = makeApp();
+  await request(app).post('/api/admin/projects/upload').send({ csv: SAMPLE_CSV }).expect(401);
+});
+
 test('a project with no votes reports null average and zero count', async () => {
   const app = makeApp();
   const admin = await adminAgent(app);

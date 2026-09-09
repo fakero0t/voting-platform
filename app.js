@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const { openDb, seedProjects } = require('./db');
+const { openDb, seedProjects, replaceProjectsFromCsv } = require('./db');
 
 const VALID_STATUSES = ['draft', 'live', 'closed'];
 
@@ -40,7 +40,7 @@ function createApp(opts = {}) {
   const adminToken = sha256('admin:' + adminPassword);
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
   // ---- prepared statements ----
@@ -240,6 +240,19 @@ function createApp(opts = {}) {
 
   app.get('/api/admin/projects', requireAdmin, (req, res) => {
     res.json({ status: getStatus(), projects: q.listProjects.all() });
+  });
+
+  // Replace every project from an uploaded CSV (same columns as the Demo Day form).
+  app.post('/api/admin/projects/upload', requireAdmin, (req, res) => {
+    if (!ensureDraft(res)) return;
+    const csv = String(req.body.csv || '');
+    if (!csv.trim()) return res.status(400).json({ error: 'No CSV content received.' });
+    try {
+      const count = replaceProjectsFromCsv(db, csv);
+      res.json({ ok: true, count });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
   });
 
   app.post('/api/admin/projects', requireAdmin, (req, res) => {

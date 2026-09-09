@@ -77,28 +77,52 @@ function parseCsv(text) {
   return rows;
 }
 
+// Turn parsed CSV rows (minus header) into {name, description, members}, skipping rows with no team name.
+// Columns (by position): Timestamp, Email, Team Name, Team Members, Elevator Pitch.
+// Timestamp and email are intentionally ignored.
+function projectsFromRows(rows) {
+  return rows
+    .map((r) => ({ name: (r[2] || '').trim(), description: (r[4] || '').trim(), members: (r[3] || '').trim() }))
+    .filter((p) => p.name);
+}
+
 /**
- * Seed the projects table from the Demo Day submissions CSV, but only when it's empty.
- * Columns (by position): Timestamp, Email, Team Name, Team Members, Elevator Pitch.
- * Timestamp and email are intentionally ignored.
+ * Seed the projects table from a submissions CSV, but only when it's empty.
  * @returns {number} number of projects inserted (0 if already seeded).
  */
 function seedProjects(db, csvPath) {
   if (db.prepare('SELECT COUNT(*) AS n FROM projects').get().n > 0) return 0;
   const rows = parseCsv(fs.readFileSync(csvPath, 'utf8'));
   rows.shift(); // drop header
+  const projects = projectsFromRows(rows);
   const insert = db.prepare('INSERT INTO projects (name, description, team_members) VALUES (?, ?, ?)');
   const seed = db.transaction((records) => {
-    let n = 0;
-    for (const r of records) {
-      const name = (r[2] || '').trim();
-      if (!name) continue;
-      insert.run(name, (r[4] || '').trim(), (r[3] || '').trim());
-      n++;
-    }
-    return n;
+    for (const p of records) insert.run(p.name, p.description, p.members);
+    return records.length;
   });
-  return seed(rows);
+  return seed(projects);
 }
 
-module.exports = { openDb, parseCsv, seedProjects };
+/**
+ * Replace ALL projects with the contents of a CSV string (same columns as the seed CSV).
+ * Deleting the projects cascades to their votes, so this is a full reset.
+ * Aborts (throws) if the CSV has no usable team rows, so a bad upload can't wipe the data.
+ * @returns {number} number of projects inserted.
+ */
+function replaceProjectsFromCsv(db, csvText) {
+  const rows = parseCsv(csvText);
+  rows.shift(); // drop header
+  const projects = projectsFromRows(rows);
+  if (projects.length === 0) {
+    throw new Error('No team rows found. Expected columns: Timestamp, Email, Team Name, Team Members, Elevator Pitch.');
+  }
+  const insert = db.prepare('INSERT INTO projects (name, description, team_members) VALUES (?, ?, ?)');
+  const replace = db.transaction((records) => {
+    db.prepare('DELETE FROM projects').run();
+    for (const p of records) insert.run(p.name, p.description, p.members);
+    return records.length;
+  });
+  return replace(projects);
+}
+
+module.exports = { openDb, parseCsv, seedProjects, replaceProjectsFromCsv };

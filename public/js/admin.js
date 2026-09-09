@@ -153,6 +153,14 @@
                 <textarea class="field" id="pDesc" placeholder="A sentence or two so voters know what they're rating."></textarea>
               </div>
               <button class="btn" id="addProject">Add project</button>
+            </div>
+            <div class="stack" style="border-top:1px solid var(--line);padding-top:18px">
+              <div>
+                <label class="lbl">Replace all projects from a CSV</label>
+                <p class="muted" style="font-size:.85rem;margin:.2rem 0 0">Same columns as the Demo Day form (Team Name, Team Members, Elevator Pitch). This replaces every project and clears existing votes.</p>
+              </div>
+              <input class="field" type="file" id="csvFile" accept=".csv,text/csv">
+              <button class="btn btn--ghost" id="uploadCsv">Upload &amp; replace</button>
             </div>` : `<p class="muted" style="font-size:.9rem">Projects can only be changed while the vote is a draft.</p>`}
         </div>
       </div>`;
@@ -198,6 +206,20 @@
 
       panel.querySelectorAll('[data-edit]').forEach((b) =>
         b.addEventListener('click', () => editProject(b.dataset.edit, data.projects)));
+
+      const uploadBtn = panel.querySelector('#uploadCsv');
+      uploadBtn.addEventListener('click', async () => {
+        const file = panel.querySelector('#csvFile').files[0];
+        if (!file) { toast('Choose a CSV file first.', true); return; }
+        if (!confirm('Replace ALL projects with this CSV? Existing projects and any votes will be cleared.')) return;
+        uploadBtn.disabled = true;
+        try {
+          const csv = await file.text();
+          const r = await api('/api/admin/projects/upload', { method: 'POST', body: JSON.stringify({ csv }) });
+          toast(`Imported ${r.count} team${r.count === 1 ? '' : 's'}.`);
+          renderSetup();
+        } catch (e) { toast(e.message, true); uploadBtn.disabled = false; }
+      });
     }
   }
 
