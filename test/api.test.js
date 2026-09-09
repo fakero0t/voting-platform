@@ -140,6 +140,38 @@ test('results are the average of all votes and list who voted', async () => {
   assert.deepStrictEqual(names, ['Kim', 'Lee', 'Sam']);
 });
 
+test('admin can remove a specific vote (duplicate cleanup)', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  const pid = await addProject(admin, 'Alpha');
+  await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
+
+  for (const [name, score] of [['Sam', 8], ['Kim', 6]]) {
+    const v = request.agent(app);
+    await v.post('/api/voter/register').send({ name }).expect(200);
+    await v.post('/api/votes').send({ projectId: pid, score }).expect(200);
+  }
+
+  let res = await admin.get('/api/admin/results').expect(200);
+  const kim = res.body.votesByProject[pid].find((x) => x.voterName === 'Kim');
+  assert.ok(kim.voteId, 'each vote exposes a voteId');
+
+  await admin.delete('/api/admin/votes/' + kim.voteId).expect(200);
+
+  res = await admin.get('/api/admin/results').expect(200);
+  const project = res.body.projects.find((p) => p.id === pid);
+  assert.strictEqual(project.voteCount, 1);              // Kim's vote gone
+  assert.strictEqual(project.average, 8);               // only Sam's 8 remains
+  assert.deepStrictEqual(res.body.votesByProject[pid].map((x) => x.voterName), ['Sam']);
+});
+
+test('removing a vote requires admin, and a missing vote 404s', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  await request(app).delete('/api/admin/votes/1').expect(401);
+  await admin.delete('/api/admin/votes/99999').expect(404);
+});
+
 const SAMPLE_CSV =
   'Timestamp,Email Address,Team Name,Team Members,Elevator Pitch\n' +
   '9/8/2026 14:41:00,a@x.com,Alpha Team,"Ann A, Bo B","A pitch, with a comma"\n' +

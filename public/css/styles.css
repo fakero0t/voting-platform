@@ -209,6 +209,10 @@ label.lbl { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 7px
 .vote-list li { display: flex; justify-content: space-between; font-size: 0.9rem;
   padding: 8px 12px; background: var(--bg); border-radius: 10px; }
 .vote-list .score { font-family: var(--font-display); font-weight: 600; }
+.vote-list__right { display: flex; align-items: center; gap: 12px; }
+.vote-remove { background: none; border: none; color: var(--muted); font: inherit; font-size: 0.82rem;
+  cursor: pointer; padding: 0; transition: color .15s var(--ease); }
+.vote-remove:hover { color: var(--coral); }
 
 .tabs { display: inline-flex; gap: 4px; background: var(--bg); padding: 5px; border-radius: 999px; margin-bottom: 24px; }
 .tab { border: none; background: none; font: inherit; font-weight: 600; color: var(--muted);

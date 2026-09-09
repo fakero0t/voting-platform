@@ -268,7 +268,7 @@
       const open = openVoters.has(p.id);
       const voterRows = votes.length
         ? votes.slice().sort((a, b) => b.score - a.score)
-            .map((v) => `<li><span>${esc(v.voterName)}</span><span class="score">${v.score}</span></li>`).join('')
+            .map((v) => `<li><span>${esc(v.voterName)}</span><span class="vote-list__right"><span class="score">${v.score}</span><button class="vote-remove" data-remove-vote="${v.voteId}" aria-label="Remove ${esc(v.voterName)}'s vote">Remove</button></span></li>`).join('')
         : `<li><span class="muted">No votes yet</span><span></span></li>`;
       return `
         <div class="result">
@@ -311,6 +311,16 @@
         const id = Number(b.dataset.toggle);
         openVoters.has(id) ? openVoters.delete(id) : openVoters.add(id);
         paintResults();
+      }));
+
+    panel.querySelectorAll('[data-remove-vote]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        if (!confirm('Remove this vote? This cannot be undone.')) return;
+        try {
+          await api('/api/admin/votes/' + b.dataset.removeVote, { method: 'DELETE' });
+          toast('Vote removed.');
+          paintResults();
+        } catch (e) { toast(e.message, true); }
       }));
   }
 

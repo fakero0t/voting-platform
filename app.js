@@ -76,11 +76,12 @@ function createApp(opts = {}) {
        ORDER BY p.id
     `),
     detailedVotes: db.prepare(`
-      SELECT v.project_id, vo.name AS voter_name, v.score, v.created_at
+      SELECT v.id AS vote_id, v.project_id, vo.name AS voter_name, v.score, v.created_at
         FROM votes v
         JOIN voters vo ON vo.id = v.voter_id
        ORDER BY v.created_at
     `),
+    deleteVote: db.prepare('DELETE FROM votes WHERE id = ?'),
   };
 
   const getStatus = () => q.getStatus.get().status;
@@ -206,7 +207,7 @@ function createApp(opts = {}) {
 
     const byProject = {};
     for (const v of q.detailedVotes.all()) {
-      (byProject[v.project_id] ||= []).push({ voterName: v.voter_name, score: v.score, at: v.created_at });
+      (byProject[v.project_id] ||= []).push({ voteId: v.vote_id, voterName: v.voter_name, score: v.score, at: v.created_at });
     }
 
     res.json({
@@ -215,6 +216,15 @@ function createApp(opts = {}) {
       votesByProject: byProject,
       voters: q.listVoters.all(),
     });
+  });
+
+  // Remove a single vote (e.g. a duplicate from someone voting on two devices).
+  app.delete('/api/admin/votes/:id', requireAdmin, (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid vote id.' });
+    const info = q.deleteVote.run(id);
+    if (info.changes === 0) return res.status(404).json({ error: 'Vote not found.' });
+    res.json({ ok: true });
   });
 
   // Change status. Projects can only be edited while 'draft'.
