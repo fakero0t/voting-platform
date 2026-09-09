@@ -214,6 +214,19 @@ label.lbl { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 7px
   cursor: pointer; padding: 0; transition: color .15s var(--ease); }
 .vote-remove:hover { color: var(--coral); }
 
+/* ---- confirmation modal ---- */
+.modal-overlay { position: fixed; inset: 0; z-index: 60; padding: 20px;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  display: grid; place-items: center; animation: fade .15s var(--ease); }
+.modal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: clamp(22px, 4vw, 30px); width: 100%; max-width: 380px;
+  animation: rise .25s var(--ease) both; }
+.modal h3 { font-size: 1.25rem; margin-bottom: 8px; }
+.modal p { color: var(--muted); margin: 0 0 20px; }
+.modal__actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn--danger { background: linear-gradient(135deg, var(--coral), var(--pink)); color: #fff; border: none; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
 .tabs { display: inline-flex; gap: 4px; background: var(--bg); padding: 5px; border-radius: 999px; margin-bottom: 24px; }
 .tab { border: none; background: none; font: inherit; font-weight: 600; color: var(--muted);
   padding: 9px 18px; border-radius: 999px; cursor: pointer; transition: all .2s var(--ease); }

@@ -20,6 +20,31 @@
     setTimeout(() => (t.className = 'toast'), 2400);
   }
 
+  // In-app confirmation dialog (replaces native confirm). Resolves true/false.
+  function confirmModal({ title = 'Are you sure?', body = '', confirmLabel = 'Confirm', danger = false } = {}) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+          <h3>${esc(title)}</h3>
+          ${body ? `<p>${esc(body)}</p>` : ''}
+          <div class="modal__actions">
+            <button class="btn btn--ghost btn--sm" data-cancel>Cancel</button>
+            <button class="btn btn--sm ${danger ? 'btn--danger' : ''}" data-confirm>${esc(confirmLabel)}</button>
+          </div>
+        </div>`;
+      const close = (val) => { document.removeEventListener('keydown', onKey); overlay.remove(); resolve(val); };
+      const onKey = (e) => { if (e.key === 'Escape') close(false); };
+      overlay.querySelector('[data-cancel]').addEventListener('click', () => close(false));
+      overlay.querySelector('[data-confirm]').addEventListener('click', () => close(true));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+      document.addEventListener('keydown', onKey);
+      document.body.appendChild(overlay);
+      overlay.querySelector('[data-confirm]').focus();
+    });
+  }
+
   function esc(s) {
     return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
@@ -315,7 +340,14 @@
 
     panel.querySelectorAll('[data-remove-vote]').forEach((b) =>
       b.addEventListener('click', async () => {
-        if (!confirm('Remove this vote? This cannot be undone.')) return;
+        const name = b.closest('li')?.querySelector('span')?.textContent?.trim() || 'this';
+        const ok = await confirmModal({
+          title: 'Remove vote?',
+          body: `Remove ${name}'s vote? This can’t be undone.`,
+          confirmLabel: 'Remove',
+          danger: true,
+        });
+        if (!ok) return;
         try {
           await api('/api/admin/votes/' + b.dataset.removeVote, { method: 'DELETE' });
           toast('Vote removed.');
