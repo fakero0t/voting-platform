@@ -49,6 +49,14 @@
     return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
+  // Vote timestamps are stored as UTC (SQLite datetime('now')); show them in the viewer's local time.
+  function fmtTime(at) {
+    if (!at) return '';
+    const d = new Date(String(at).replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
   function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
 
   // ---------------- login ----------------
@@ -149,7 +157,7 @@
           </div>
           <p class="muted" style="margin:0">
             ${status === 'draft' ? 'Add your projects, then set the vote <b>Live</b> and share the link.'
-              : status === 'live' ? 'Voting is <b>live</b>. Projects are locked so it stays fair. Watch results roll in on the Results tab.'
+              : status === 'live' ? 'Voting is <b>live</b>. Watch results roll in on the Results tab.'
               : 'Voting is <b>closed</b>. Final results are on the Results tab.'}
           </p>
           <div>
@@ -293,7 +301,7 @@
       const open = openVoters.has(p.id);
       const voterRows = votes.length
         ? votes.slice().sort((a, b) => b.score - a.score)
-            .map((v) => `<li><span>${esc(v.voterName)}</span><span class="vote-list__right"><span class="score">${v.score}</span><button class="vote-remove" data-remove-vote="${v.voteId}" aria-label="Remove ${esc(v.voterName)}'s vote">Remove</button></span></li>`).join('')
+            .map((v) => `<li><span class="vote-who"><span>${esc(v.voterName)}</span><span class="vote-when">${esc(fmtTime(v.at))}</span></span><span class="vote-list__right"><span class="score">${v.score}</span><button class="vote-remove" data-remove-vote="${v.voteId}" aria-label="Remove ${esc(v.voterName)}'s vote">Remove</button></span></li>`).join('')
         : `<li><span class="muted">No votes yet</span><span></span></li>`;
       return `
         <div class="result">
