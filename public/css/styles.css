@@ -52,7 +52,8 @@ body {
 
 h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
 
-.wrap { max-width: 620px; margin: 0 auto; padding: clamp(20px, 5vw, 56px) 20px 80px; }
+.wrap { max-width: 620px; margin: 0 auto;
+  padding: clamp(20px, 5vw, 56px) 20px calc(120px + env(safe-area-inset-bottom, 0px)); }
 .wrap--wide { max-width: 860px; }
 
 /* ---- brand mark ---- */
@@ -145,6 +146,12 @@ label.lbl { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 7px
 .project__name { font-size: clamp(1.5rem, 4.5vw, 2.1rem); margin: 6px 0 10px; }
 .project__desc { color: var(--muted); font-size: 1.02rem; }
 
+/* voter card: badge pinned top-right, title clears it, members/desc stay full width */
+.vcard { position: relative; }
+.vcard > [data-badge] { position: absolute; top: clamp(22px, 4vw, 36px); right: clamp(22px, 4vw, 36px); }
+.vcard__title { padding-right: 120px; }
+@media (max-width: 380px) { .vcard__title { padding-right: 92px; } }
+
 /* ---- generic layout helpers ---- */
 .row { display: flex; gap: 12px; align-items: center; }
 .row--between { justify-content: space-between; }
@@ -159,7 +166,7 @@ label.lbl { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 7px
 
 /* ---- pills / status chips ---- */
 .chip { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; font-size: 0.78rem;
-  padding: 6px 13px; border-radius: 999px; letter-spacing: 0.02em; }
+  padding: 6px 13px; border-radius: 999px; letter-spacing: 0.02em; white-space: nowrap; }
 .chip__led { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .chip--draft  { color: #8A6D00; background: color-mix(in srgb, var(--sun) 22%, white); }
 .chip--live   { color: #0E7A5B; background: color-mix(in srgb, var(--mint) 22%, white); }

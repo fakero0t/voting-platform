@@ -113,14 +113,14 @@
       : `<span class="chip chip--draft" data-badge>Not scored yet</span>`;
     return `
       <div class="card stack vcard" data-pid="${p.id}" style="--accent:var(${accent})">
-        <div class="row row--between" style="align-items:flex-start;gap:14px">
-          <div>
+        ${badge}
+        <div class="vcard__body">
+          <div class="vcard__title">
             <div class="project__num">Project ${i + 1}</div>
             <h2 class="project__name" style="font-size:1.4rem">${esc(p.name)}</h2>
-            ${p.teamMembers ? `<p class="project__members" style="font-size:.85rem;opacity:.7;margin:.15rem 0 0">${esc(p.teamMembers)}</p>` : ''}
-            ${p.description ? `<p class="project__desc">${esc(p.description)}</p>` : ''}
           </div>
-          ${badge}
+          ${p.teamMembers ? `<p class="project__members" style="font-size:.85rem;opacity:.7;margin:.15rem 0 0">${esc(p.teamMembers)}</p>` : ''}
+          ${p.description ? `<p class="project__desc">${esc(p.description)}</p>` : ''}
         </div>
         <div>
           <div class="scale">${pips}</div>
