@@ -24,26 +24,10 @@ function safeEqual(a, b) {
  * @param {object} opts
  * @param {string} opts.dbPath        SQLite path (or ':memory:')
  * @param {string} opts.adminPassword Shared admin password
- * @param {string} [opts.seedCsv]        CSV path to seed projects from when the table is empty
- * @param {string} [opts.googleClientId] Google OAuth client ID (enables Google sign-in)
- * @param {(credential: string) => Promise<{sub: string, email?: string, name?: string}>} [opts.verifyGoogleToken]
- *        Verifier for a Google ID token; defaults to google-auth-library. Injectable for tests.
+ * @param {string} [opts.seedCsv]     CSV path to seed projects from when the table is empty
  */
 function createApp(opts = {}) {
   const db = openDb(opts.dbPath || ':memory:');
-  const googleClientId = opts.googleClientId || '';
-
-  // Verify a Google ID token → profile. Default uses the official library; tests inject a fake.
-  let verifyGoogleToken = opts.verifyGoogleToken;
-  if (!verifyGoogleToken) {
-    verifyGoogleToken = async (credential) => {
-      const { OAuth2Client } = require('google-auth-library');
-      const client = new OAuth2Client(googleClientId);
-      const ticket = await client.verifyIdToken({ idToken: credential, audience: googleClientId });
-      const p = ticket.getPayload();
-      return { sub: p.sub, email: p.email, name: p.name };
-    };
-  }
   if (opts.seedCsv) {
     try {
       const n = seedProjects(db, opts.seedCsv);
@@ -72,8 +56,7 @@ function createApp(opts = {}) {
     countProjects: db.prepare('SELECT COUNT(*) AS n FROM projects'),
 
     getVoterByToken: db.prepare('SELECT id, name FROM voters WHERE device_token = ?'),
-    getVoterBySub: db.prepare('SELECT id, name, device_token FROM voters WHERE google_sub = ?'),
-    insertGoogleVoter: db.prepare('INSERT INTO voters (name, email, google_sub, device_token) VALUES (?, ?, ?, ?)'),
+    insertVoter: db.prepare('INSERT INTO voters (name, device_token) VALUES (?, ?)'),
     listVoters: db.prepare('SELECT id, name, created_at FROM voters ORDER BY id'),
 
     votesByVoter: db.prepare('SELECT project_id, score FROM votes WHERE voter_id = ?'),
@@ -121,11 +104,6 @@ function createApp(opts = {}) {
   // Public / voter API
   // =========================================================
 
-  // Public client config (the Google client ID is not a secret).
-  app.get('/api/config', (req, res) => {
-    res.json({ googleClientId });
-  });
-
   // Voting event status (so the UI knows what to show).
   app.get('/api/state', (req, res) => {
     const voter = currentVoter(req);
@@ -135,39 +113,22 @@ function createApp(opts = {}) {
     });
   });
 
-  // Sign in with Google. Identity = Google account, so the same person on any
-  // device maps to one voter (and thus one vote per project).
-  app.post('/api/voter/google', async (req, res) => {
-    try {
-      if (getStatus() !== 'live') {
-        return res.status(409).json({ error: 'Voting is not open right now.' });
-      }
-      const credential = String(req.body.credential || '');
-      if (!credential) return res.status(400).json({ error: 'Missing Google sign-in token.' });
-
-      let profile;
-      try {
-        profile = await verifyGoogleToken(credential);
-      } catch {
-        return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
-      }
-      if (!profile || !profile.sub) {
-        return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
-      }
-
-      let voter = q.getVoterBySub.get(profile.sub);
-      if (!voter) {
-        const token = crypto.randomBytes(24).toString('hex');
-        const name = String(profile.name || profile.email || 'Voter').trim().slice(0, 80) || 'Voter';
-        q.insertGoogleVoter.run(name, profile.email || '', profile.sub, token);
-        voter = { name, device_token: token };
-      }
-      res.cookie('voter', voter.device_token, cookieOpts);
-      res.json({ name: voter.name });
-    } catch (err) {
-      console.error('Google sign-in error:', err.message);
-      res.status(500).json({ error: 'Sign-in failed unexpectedly.' });
+  // Register a voter (locks the browser to this identity).
+  app.post('/api/voter/register', (req, res) => {
+    if (getStatus() !== 'live') {
+      return res.status(409).json({ error: 'Voting is not open right now.' });
     }
+    const existing = currentVoter(req);
+    if (existing) return res.json({ name: existing.name }); // already locked to this device
+
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Please enter your name.' });
+    if (name.length > 80) return res.status(400).json({ error: 'That name is too long.' });
+
+    const token = crypto.randomBytes(24).toString('hex');
+    q.insertVoter.run(name, token);
+    res.cookie('voter', token, cookieOpts);
+    res.json({ name });
   });
 
   // Projects to vote on + which ones this voter has already scored.

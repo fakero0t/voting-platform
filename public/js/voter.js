@@ -44,57 +44,36 @@
       </div>`;
   }
 
-  // Wait for Google Identity Services to finish loading (script is async in <head>).
-  function waitForGoogle(timeout = 8000) {
-    return new Promise((resolve, reject) => {
-      const started = Date.now();
-      const t = setInterval(() => {
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-          clearInterval(t); resolve();
-        } else if (Date.now() - started > timeout) {
-          clearInterval(t); reject(new Error('Google sign-in failed to load.'));
-        }
-      }, 60);
-    });
-  }
-
-  async function onCredential(response) {
-    try {
-      await api('/api/voter/google', { method: 'POST', body: JSON.stringify({ credential: response.credential }) });
-      haptic(12);
-      await loadList();
-    } catch (e) { toast(e.message, true); }
-  }
-
-  async function screenName() {
+  function screenName() {
     document.documentElement.style.setProperty('--accent', 'var(--peri)');
     app.innerHTML = `
       <div class="screen card stack">
         <div>
           <div class="eyebrow">Let's vote</div>
           <h1 class="display">Rate your favorite projects</h1>
-          <p class="lead">Sign in with Google so your picks are counted — one vote per person, on any device. You can change any score until voting closes.</p>
+          <p class="lead">Score each project from 1 to 10. Enter your name so your picks are counted — you can change any score until voting closes.</p>
         </div>
-        <div id="gbtn" style="min-height:44px"></div>
-        <p class="muted" id="gsHint" style="font-size:.9rem">Loading sign-in…</p>
+        <div>
+          <label class="lbl" for="name">Your name</label>
+          <input class="field" id="name" placeholder="e.g. Jordan Rivera" autocomplete="name" maxlength="80">
+        </div>
+        <button class="btn btn--block" id="start">Start voting</button>
       </div>`;
-    const hint = document.getElementById('gsHint');
-
-    let cfg;
-    try { cfg = await api('/api/config'); } catch { cfg = {}; }
-    if (!cfg.googleClientId) {
-      hint.textContent = 'Sign-in isn’t configured yet — check back shortly.';
-      return;
-    }
-    try {
-      await waitForGoogle();
-    } catch (e) { hint.textContent = e.message; return; }
-
-    google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: onCredential });
-    google.accounts.id.renderButton(document.getElementById('gbtn'), {
-      theme: 'filled_blue', size: 'large', text: 'signin_with', shape: 'pill', width: 260,
-    });
-    hint.hidden = true;
+    const input = document.getElementById('name');
+    const go = document.getElementById('start');
+    input.focus();
+    const submit = async () => {
+      const name = input.value.trim();
+      if (!name) { toast('Enter your name to start.', true); input.focus(); return; }
+      go.disabled = true;
+      try {
+        await api('/api/voter/register', { method: 'POST', body: JSON.stringify({ name }) });
+        haptic(12);
+        await loadList();
+      } catch (e) { toast(e.message, true); go.disabled = false; }
+    };
+    go.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
   }
 
   async function loadList() {
