@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS voters (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   name         TEXT NOT NULL,
-  device_token TEXT NOT NULL UNIQUE,
+  email        TEXT NOT NULL DEFAULT '',
+  google_sub   TEXT UNIQUE,               -- stable Google account id; one voter per Google identity
+  device_token TEXT NOT NULL UNIQUE,       -- random session token stored in the voter cookie
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
