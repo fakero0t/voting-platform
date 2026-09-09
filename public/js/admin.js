@@ -138,7 +138,7 @@
             ${editable ? `<div class="row" style="gap:8px">
               <button class="btn btn--ghost btn--sm" data-edit="${p.id}">Edit</button>
               <button class="btn btn--ghost btn--sm" data-del="${p.id}">Delete</button>
-            </div>` : `<span class="muted" style="font-size:.85rem">${p.voteCount} vote${p.voteCount === 1 ? '' : 's'}</span>`}
+            </div>` : `<span class="muted a-project__count">${p.voteCount} vote${p.voteCount === 1 ? '' : 's'}</span>`}
           </div>
         </div>`).join('')
       : `<p class="muted">No projects yet. Add the first one below.</p>`;

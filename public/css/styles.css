@@ -198,6 +198,7 @@ label.lbl { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 7px
 .a-project { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 18px; }
 .a-project + .a-project { margin-top: 12px; }
 .a-project__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.a-project__count { white-space: nowrap; flex-shrink: 0; font-size: 0.85rem; }
 .a-project__name { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
 .a-project__desc { color: var(--muted); font-size: 0.92rem; margin-top: 3px; }
 
@@ -209,7 +210,7 @@ label.lbl { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 7px
 .result__bar { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; margin: 14px 0 4px; }
 .result__fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--peri), var(--grape));
   transition: width .6s var(--spring); }
-.result__count { color: var(--muted); font-size: 0.85rem; }
+.result__count { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
 
 .voters-toggle { background: none; border: none; color: var(--accent); font: inherit; font-weight: 600;
   cursor: pointer; padding: 8px 0 0; font-size: 0.88rem; }
