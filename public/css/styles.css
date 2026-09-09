@@ -90,6 +90,9 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 .muted { color: var(--muted); }
 
 /* ---- inputs ---- */
+.name-fields { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 460px) { .name-fields { grid-template-columns: 1fr 1fr; } }
+
 .field { width: 100%; font: inherit; color: var(--ink);
   padding: 15px 18px; border: 1.5px solid var(--line); border-radius: var(--radius-sm);
   background: var(--surface); transition: border-color .15s var(--ease), box-shadow .15s var(--ease); }

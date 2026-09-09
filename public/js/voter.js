@@ -53,27 +53,39 @@
           <h1 class="display">Rate your favorite projects</h1>
           <p class="lead">Score each project from 1 to 10. Enter your name so your picks are counted — you can change any score until voting closes.</p>
         </div>
-        <div>
-          <label class="lbl" for="name">Your name</label>
-          <input class="field" id="name" placeholder="e.g. Jordan Rivera" autocomplete="name" maxlength="80">
+        <div class="name-fields">
+          <div>
+            <label class="lbl" for="firstName">First name</label>
+            <input class="field" id="firstName" placeholder="e.g. Jordan" autocomplete="given-name" maxlength="40">
+          </div>
+          <div>
+            <label class="lbl" for="lastName">Last name</label>
+            <input class="field" id="lastName" placeholder="e.g. Rivera" autocomplete="family-name" maxlength="40">
+          </div>
         </div>
         <button class="btn btn--block" id="start">Start voting</button>
       </div>`;
-    const input = document.getElementById('name');
+    const firstEl = document.getElementById('firstName');
+    const lastEl = document.getElementById('lastName');
     const go = document.getElementById('start');
-    input.focus();
+    firstEl.focus();
     const submit = async () => {
-      const name = input.value.trim();
-      if (!name) { toast('Enter your name to start.', true); input.focus(); return; }
+      const firstName = firstEl.value.trim();
+      const lastName = lastEl.value.trim();
+      if (!firstName || !lastName) {
+        toast('Enter your first and last name to start.', true);
+        (firstName ? lastEl : firstEl).focus();
+        return;
+      }
       go.disabled = true;
       try {
-        await api('/api/voter/register', { method: 'POST', body: JSON.stringify({ name }) });
+        await api('/api/voter/register', { method: 'POST', body: JSON.stringify({ firstName, lastName }) });
         haptic(12);
         await loadList();
       } catch (e) { toast(e.message, true); go.disabled = false; }
     };
     go.addEventListener('click', submit);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    [firstEl, lastEl].forEach((el) => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); }));
   }
 
   async function loadList() {

@@ -57,7 +57,7 @@ test('voting is blocked unless status is live', async () => {
   await addProject(admin, 'Alpha');
 
   // draft -> registration blocked
-  await request(app).post('/api/voter/register').send({ name: 'Sam' }).expect(409);
+  await request(app).post('/api/voter/register').send({ firstName: 'Sam', lastName: 'Lee' }).expect(409);
 });
 
 test('re-voting updates the score (still one row per project) while voting is open', async () => {
@@ -67,7 +67,7 @@ test('re-voting updates the score (still one row per project) while voting is op
   await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
 
   const voter = request.agent(app);
-  await voter.post('/api/voter/register').send({ name: 'Sam' }).expect(200);
+  await voter.post('/api/voter/register').send({ firstName: 'Sam', lastName: 'Lee' }).expect(200);
 
   await voter.post('/api/votes').send({ projectId: pid, score: 8 }).expect(200);
   await voter.post('/api/votes').send({ projectId: pid, score: 3 }).expect(200); // update, not rejected
@@ -85,7 +85,7 @@ test('votes cannot be changed once voting is closed', async () => {
   await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
 
   const voter = request.agent(app);
-  await voter.post('/api/voter/register').send({ name: 'Sam' }).expect(200);
+  await voter.post('/api/voter/register').send({ firstName: 'Sam', lastName: 'Lee' }).expect(200);
   await voter.post('/api/votes').send({ projectId: pid, score: 8 }).expect(200);
 
   await admin.post('/api/admin/status').send({ status: 'closed' }).expect(200);
@@ -99,7 +99,7 @@ test('score must be a whole number from 1 to 10', async () => {
   await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
 
   const voter = request.agent(app);
-  await voter.post('/api/voter/register').send({ name: 'Sam' }).expect(200);
+  await voter.post('/api/voter/register').send({ firstName: 'Sam', lastName: 'Lee' }).expect(200);
 
   await voter.post('/api/votes').send({ projectId: pid, score: 0 }).expect(400);
   await voter.post('/api/votes').send({ projectId: pid, score: 11 }).expect(400);
@@ -113,10 +113,19 @@ test('device lock: the browser stays tied to the first name', async () => {
   await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
 
   const voter = request.agent(app);
-  await voter.post('/api/voter/register').send({ name: 'Sam' }).expect(200);
+  await voter.post('/api/voter/register').send({ firstName: 'Sam', lastName: 'Lee' }).expect(200);
   // Trying to register again under a new name returns the original identity.
-  const res = await voter.post('/api/voter/register').send({ name: 'NotSam' }).expect(200);
-  assert.strictEqual(res.body.name, 'Sam');
+  const res = await voter.post('/api/voter/register').send({ firstName: 'Not', lastName: 'Sam' }).expect(200);
+  assert.strictEqual(res.body.name, 'Sam Lee');
+});
+
+test('registration requires both first and last name', async () => {
+  const app = makeApp();
+  const admin = await adminAgent(app);
+  await addProject(admin, 'Alpha');
+  await admin.post('/api/admin/status').send({ status: 'live' }).expect(200);
+  await request(app).post('/api/voter/register').send({ firstName: 'Sam' }).expect(400);
+  await request(app).post('/api/voter/register').send({ lastName: 'Lee' }).expect(400);
 });
 
 test('results are the average of all votes and list who voted', async () => {
@@ -127,7 +136,7 @@ test('results are the average of all votes and list who voted', async () => {
 
   for (const [name, score] of [['Sam', 8], ['Kim', 6], ['Lee', 10]]) {
     const v = request.agent(app);
-    await v.post('/api/voter/register').send({ name }).expect(200);
+    await v.post('/api/voter/register').send({ firstName: name, lastName: 'Q' }).expect(200);
     await v.post('/api/votes').send({ projectId: pid, score }).expect(200);
   }
 
@@ -137,7 +146,7 @@ test('results are the average of all votes and list who voted', async () => {
   assert.strictEqual(project.average, 8); // (8+6+10)/3
   assert.strictEqual(res.body.votesByProject[pid].length, 3);
   const names = res.body.votesByProject[pid].map((x) => x.voterName).sort();
-  assert.deepStrictEqual(names, ['Kim', 'Lee', 'Sam']);
+  assert.deepStrictEqual(names, ['Kim Q', 'Lee Q', 'Sam Q']);
 });
 
 test('admin can remove a specific vote (duplicate cleanup)', async () => {
@@ -148,12 +157,12 @@ test('admin can remove a specific vote (duplicate cleanup)', async () => {
 
   for (const [name, score] of [['Sam', 8], ['Kim', 6]]) {
     const v = request.agent(app);
-    await v.post('/api/voter/register').send({ name }).expect(200);
+    await v.post('/api/voter/register').send({ firstName: name, lastName: 'Q' }).expect(200);
     await v.post('/api/votes').send({ projectId: pid, score }).expect(200);
   }
 
   let res = await admin.get('/api/admin/results').expect(200);
-  const kim = res.body.votesByProject[pid].find((x) => x.voterName === 'Kim');
+  const kim = res.body.votesByProject[pid].find((x) => x.voterName === 'Kim Q');
   assert.ok(kim.voteId, 'each vote exposes a voteId');
 
   await admin.delete('/api/admin/votes/' + kim.voteId).expect(200);
@@ -162,7 +171,7 @@ test('admin can remove a specific vote (duplicate cleanup)', async () => {
   const project = res.body.projects.find((p) => p.id === pid);
   assert.strictEqual(project.voteCount, 1);              // Kim's vote gone
   assert.strictEqual(project.average, 8);               // only Sam's 8 remains
-  assert.deepStrictEqual(res.body.votesByProject[pid].map((x) => x.voterName), ['Sam']);
+  assert.deepStrictEqual(res.body.votesByProject[pid].map((x) => x.voterName), ['Sam Q']);
 });
 
 test('removing a vote requires admin, and a missing vote 404s', async () => {

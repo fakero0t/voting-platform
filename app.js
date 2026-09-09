@@ -122,8 +122,12 @@ function createApp(opts = {}) {
     const existing = currentVoter(req);
     if (existing) return res.json({ name: existing.name }); // already locked to this device
 
-    const name = String(req.body.name || '').trim();
-    if (!name) return res.status(400).json({ error: 'Please enter your name.' });
+    const firstName = String(req.body.firstName || '').trim();
+    const lastName = String(req.body.lastName || '').trim();
+    if (!firstName || !lastName) {
+      return res.status(400).json({ error: 'Please enter your first and last name.' });
+    }
+    const name = `${firstName} ${lastName}`;
     if (name.length > 80) return res.status(400).json({ error: 'That name is too long.' });
 
     const token = crypto.randomBytes(24).toString('hex');
